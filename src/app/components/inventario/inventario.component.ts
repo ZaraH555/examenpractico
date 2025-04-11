@@ -25,7 +25,10 @@ export class InventarioComponent implements OnInit, OnDestroy {
   productoSeleccionado: Producto | null = null;
   private subscription: Subscription = new Subscription();
 
-  constructor(private inventarioService: InventarioService, private router: Router) {}
+  constructor(
+    private inventarioService: InventarioService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
     this.subscription = this.inventarioService.productos$.subscribe({
@@ -34,6 +37,7 @@ export class InventarioComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Error al obtener productos:', error);
+        alert('Error al cargar los productos');
       }
     });
   }
@@ -43,10 +47,11 @@ export class InventarioComponent implements OnInit, OnDestroy {
   }
 
   agregarProducto(): void {
-    if (this.nuevoProducto.cantidad < 0) {
-      alert('La cantidad no puede ser negativa');
+    if (!this.nuevoProducto.nombre || Number(this.nuevoProducto.precio) <= 0) {
+      alert('Por favor complete todos los campos correctamente');
       return;
     }
+
     this.inventarioService.agregarProducto(this.nuevoProducto);
     this.nuevoProducto = {
       id: 0,
@@ -58,47 +63,48 @@ export class InventarioComponent implements OnInit, OnDestroy {
   }
 
   editarProducto(producto: Producto): void {
-    this.productoSeleccionado = { ...producto };
+    this.productoSeleccionado = { ...producto }; // Create a copy
   }
 
   guardarCambios(): void {
-    if (this.productoSeleccionado) {
-      if (this.productoSeleccionado.cantidad < 0) {
-        alert('La cantidad no puede ser negativa');
-        return;
-      }
-      this.inventarioService.modificarProducto(this.productoSeleccionado.id, this.productoSeleccionado);
-      this.cancelarEdicion();
+    if (!this.productoSeleccionado) return;
+
+    if (this.productoSeleccionado.cantidad < 0) {
+      alert('La cantidad no puede ser negativa');
+      return;
     }
+
+    if (Number(this.productoSeleccionado.precio) < 0) {
+      alert('El precio no puede ser negativo');
+      return;
+    }
+
+    this.inventarioService.modificarProducto(
+      this.productoSeleccionado.id,
+      this.productoSeleccionado
+    );
+    this.productoSeleccionado = null;
   }
 
   cancelarEdicion(): void {
     this.productoSeleccionado = null;
   }
 
-  eliminarProducto(id: number | undefined): void {
-    if (id !== undefined) {
+  eliminarProducto(id: number): void {
+    if (confirm('¿Está seguro de eliminar este producto?')) {
       this.inventarioService.eliminarProducto(id);
-      this.agregarProducto();
     }
-  }
-
-  modificarProducto(): void {
-    if (this.productoSeleccionado && this.productoSeleccionado.id !== undefined) {
-      this.inventarioService.modificarProducto(
-        this.productoSeleccionado.id,
-        this.productoSeleccionado
-      );
-      this.agregarProducto();
-      this.productoSeleccionado = null;
-    }
-  }
-
-  descargarXML(): void {
-    this.inventarioService.descargarXML();
   }
 
   volverAProductos(): void {
     this.router.navigate(['/productos']);
+  }
+
+  descargarXML(): void {
+    if (this.productos.length === 0) {
+      alert('No hay productos en el inventario');
+      return;
+    }
+    this.inventarioService.descargarXML();
   }
 }

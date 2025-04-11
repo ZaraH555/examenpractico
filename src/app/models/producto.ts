@@ -1,5 +1,5 @@
 export interface Producto {
-  id: number;  // Remove the optional '?' operator
+  id: number;  
   nombre: string;
   precio: number;
   cantidad: number;

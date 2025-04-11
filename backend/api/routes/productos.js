@@ -1,45 +1,59 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db.js');
+const connection = require('../db');
 
-// Obtener todos los productos
+// Get all products
 router.get('/', (req, res) => {
-  db.query('SELECT * FROM productos', (err, resultados) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(resultados);
+  connection.query('SELECT * FROM productos', (error, results) => {
+    if (error) {
+      console.error('Error fetching products:', error);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(results);
   });
 });
 
-// Agregar un nuevo producto
+// Add new product
 router.post('/', (req, res) => {
   const { nombre, precio, imagen, cantidad } = req.body;
-  db.query(
+  connection.query(
     'INSERT INTO productos (nombre, precio, imagen, cantidad) VALUES (?, ?, ?, ?)',
     [nombre, precio, imagen, cantidad],
-    (err, resultado) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.status(201).json({ id: resultado.insertId, ...req.body });
+    (error, result) => {
+      if (error) {
+        console.error('Error adding product:', error);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      res.status(201).json({ id: result.insertId, ...req.body });
     }
   );
 });
 
-// Actualizar un producto
+// Update product
 router.put('/:id', (req, res) => {
+  const { id } = req.params;
   const { nombre, precio, imagen, cantidad } = req.body;
-  db.query(
+  connection.query(
     'UPDATE productos SET nombre = ?, precio = ?, imagen = ?, cantidad = ? WHERE id = ?',
-    [nombre, precio, imagen, cantidad, req.params.id],
-    (err) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ id: req.params.id, ...req.body });
+    [nombre, precio, imagen, cantidad, id],
+    (error) => {
+      if (error) {
+        console.error('Error updating product:', error);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      res.json(req.body);
     }
   );
 });
 
-// Eliminar un producto
+// Delete product
 router.delete('/:id', (req, res) => {
-  db.query('DELETE FROM productos WHERE id = ?', [req.params.id], (err) => {
-    if (err) return res.status(500).json({ error: err.message });
+  const { id } = req.params;
+  connection.query('DELETE FROM productos WHERE id = ?', [id], (error) => {
+    if (error) {
+      console.error('Error deleting product:', error);
+      return res.status(500).json({ error: 'Database error' });
+    }
     res.status(204).send();
   });
 });

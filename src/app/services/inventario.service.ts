@@ -1,100 +1,148 @@
-import { Inject, Injectable, PLATFORM_ID } from '@angular/core';
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { BehaviorSubject, catchError, tap, throwError } from 'rxjs';
 import { Producto } from '../models/producto';
-import { BehaviorSubject } from 'rxjs';
-import { ProductoService } from './producto.service';
-import { isPlatformBrowser } from '@angular/common';
 
 @Injectable({
   providedIn: 'root'
 })
 export class InventarioService {
-  private productos: Producto[] = [];
+  private apiUrl = 'http://localhost:3000/api/productos';
   private productosSubject = new BehaviorSubject<Producto[]>([]);
   productos$ = this.productosSubject.asObservable();
 
-  constructor(
-    @Inject(PLATFORM_ID) private platformId: Object,
-    private productoService: ProductoService
-  ) {
-    this.productoService.productos$.subscribe(productos => {
-      this.productos = productos;
-      this.productosSubject.next(productos);
-    });
+  constructor(private http: HttpClient) {
+    this.cargarProductos();
   }
 
-  modificarProducto(id: number, productoActualizado: Producto): void {
-    const productos = [...this.productos];
-    const index = productos.findIndex(p => p.id === id);
-    if (index !== -1) {
-      productos[index] = productoActualizado;
-      this.productoService.actualizarProductos(productos);
+  private handleError(error: HttpErrorResponse) {
+    let errorMessage = 'Ocurrió un error en la operación';
+    
+    if (error.error instanceof ErrorEvent) {
+      // Client-side error
+      errorMessage = `Error: ${error.error.message}`;
+    } else {
+      // Server-side error
+      errorMessage = `Código de error: ${error.status}\nMensaje: ${error.message}`;
     }
+    
+    console.error('Error details:', error);
+    return throwError(() => new Error(errorMessage));
   }
 
-  eliminarProducto(id: number): void {
-    const productos = this.productos.filter(p => p.id !== id);
-    this.productoService.actualizarProductos(productos);
+  cargarProductos() {
+    this.http.get<Producto[]>(this.apiUrl)
+      .pipe(
+        catchError(this.handleError)
+      )
+      .subscribe({
+        next: (productos) => this.productosSubject.next(productos),
+        error: (error) => console.error('Error loading products:', error.message)
+      });
   }
 
-  agregarProducto(producto: Producto): void {
-    const productos = [...this.productosSubject.value];
-    producto.id = this.generarNuevoId(productos);
-    productos.push(producto);
-    this.productosSubject.next(productos);
+  modificarProducto(id: number, producto: Producto) {
+    const productoToUpdate = {
+      ...producto,
+      precio: Number(producto.precio),
+      cantidad: Number(producto.cantidad)
+    };
+
+    console.log('Updating product:', productoToUpdate);
+
+    return this.http.put<Producto>(`${this.apiUrl}/${id}`, productoToUpdate)
+      .pipe(
+        tap(response => {
+          console.log('Server response:', response);
+          this.cargarProductos();
+        }),
+        catchError(this.handleError)
+      )
+      .subscribe({
+        next: () => {
+          alert('Producto modificado exitosamente');
+        },
+        error: (error) => {
+          console.error('Error updating product:', error);
+          alert(`Error al modificar el producto: ${error.message}`);
+        }
+      });
+  }
+
+  agregarProducto(producto: Producto) {
+    const productoToAdd = {
+      ...producto,
+      precio: Number(producto.precio),
+      cantidad: Number(producto.cantidad)
+    };
+
+    return this.http.post<Producto>(this.apiUrl, productoToAdd)
+      .pipe(
+        tap(() => this.cargarProductos()),
+        catchError(this.handleError)
+      )
+      .subscribe({
+        next: () => {
+          this.cargarProductos();
+          alert('Producto agregado exitosamente');
+        },
+        error: (error) => {
+          console.error('Error adding product:', error);
+          alert('Error al agregar el producto: ' + error.message);
+        }
+      });
+  }
+
+  eliminarProducto(id: number) {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`)
+      .pipe(
+        tap(() => this.cargarProductos()),
+        catchError(this.handleError)
+      )
+      .subscribe({
+        next: () => {
+          this.cargarProductos();
+          alert('Producto eliminado exitosamente');
+        },
+        error: (error) => {
+          console.error('Error deleting product:', error);
+          alert('Error al eliminar el producto: ' + error.message);
+        }
+      });
+  }
+
+  generarXML(): string {
+    const productos = this.productosSubject.value;
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    xml += `<Inventario>\n`;
+    xml += `  <FechaGeneracion>${new Date().toISOString()}</FechaGeneracion>\n`;
+    xml += `  <Productos>\n`;
+
+    productos.forEach(producto => {
+      xml += `    <Producto>\n`;
+      xml += `      <Id>${producto.id}</Id>\n`;
+      xml += `      <Nombre>${producto.nombre}</Nombre>\n`;
+      xml += `      <Precio>${producto.precio}</Precio>\n`;
+      xml += `      <Cantidad>${producto.cantidad}</Cantidad>\n`;
+      xml += `      <Imagen>${producto.imagen}</Imagen>\n`;
+      xml += `    </Producto>\n`; 
+    });
+
+    xml += `  </Productos>\n`;
+    xml += `</Inventario>`;
+    return xml;
   }
 
   descargarXML(): void {
-    if (isPlatformBrowser(this.platformId)) {
-      try {
-        const xmlString = this.generarXMLDesdeProductos(this.productos);
-        const blob = new Blob([xmlString], { type: 'application/xml' });
-        const url = window.URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'productos.xml';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-        this.productoService.actualizarProductos(this.productos);
-      } catch (error) {
-        console.error('Error al descargar el XML:', error);
-      }
-    }
-  }
-
-  private generarXMLDesdeProductos(productos: Producto[]): string {
-    const xmlHeader = '<?xml version="1.0" encoding="UTF-8"?>';
-    const productosXML = productos.map(prod => `
-      <producto>
-        <id>${prod.id}</id>
-        <nombre>${this.escapeXML(prod.nombre)}</nombre>
-        <precio>${prod.precio}</precio>
-        <cantidad>${prod.cantidad}</cantidad>
-        <imagen>${this.escapeXML(prod.imagen)}</imagen>
-      </producto>
-    `).join('');
-    
-    return `${xmlHeader}\n<productos>${productosXML}</productos>`;
-  }
-
-  private escapeXML(str: string): string {
-    return str.toString().replace(/[<>&'"]/g, c => {
-      switch (c) {
-        case '<': return '&lt;';
-        case '>': return '&gt;';
-        case '&': return '&amp;';
-        case "'": return '&apos;';
-        case '"': return '&quot;';
-        default: return c;
-      }
-    });
-  }
-
-  private generarNuevoId(productos: Producto[]): number {
-    const maxId = productos.reduce((max, p) => 
-      (p.id !== undefined && p.id > max) ? p.id : max, 0);
-    return maxId + 1;
+    const xml = this.generarXML();
+    const blob = new Blob([xml], { type: 'application/xml' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'inventario.xml';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   }
 }

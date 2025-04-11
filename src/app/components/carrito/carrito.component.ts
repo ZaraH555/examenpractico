@@ -14,7 +14,7 @@ import { Router } from '@angular/router';
   templateUrl: './carrito.component.html',
   styleUrls: ['./carrito.component.css']
 })
-export class CarritoComponent {
+export class CarritoComponent implements OnInit {
   carrito: any[]=[];
   constructor(private carritoService:CarritoService, private cd: ChangeDetectorRef, private router: Router){}
     ngOnInit(){
@@ -25,7 +25,11 @@ export class CarritoComponent {
       this.carrito = this.carritoService.obtenerCarrito();
       this.cd.detectChanges();
     }
-    generarXML() {
+    generarXML(): void {
+      if (this.carrito.length === 0) {
+        alert('El carrito está vacío');
+        return;
+      }
       this.carritoService.descargarXML();
     }
     irAProductos() {
