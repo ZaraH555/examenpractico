@@ -12,7 +12,7 @@ const connection = mysql.createConnection({
   host: 'localhost',
   user: 'root',
   password: '',
-  database: 'basededatos'
+  database: 'patitas_felices'
 });
 
 connection.connect(error => {
@@ -24,67 +24,54 @@ connection.connect(error => {
 });
 
 // API Routes
-app.get('/api/productos', (req, res) => {
-  connection.query('SELECT * FROM productos', (error, results) => {
+app.get('/api/mascotas', (req, res) => {
+  const query = 'SELECT * FROM mascotas';
+  connection.query(query, (error, results) => {
     if (error) {
-      console.error('Error fetching products:', error);
+      console.error('Error fetching mascotas:', error);
       return res.status(500).json({ error: 'Database error' });
     }
     res.json(results);
   });
 });
 
-app.put('/api/productos/:id', (req, res) => {
-  const { nombre, precio, imagen, cantidad } = req.body;
-  const id = req.params.id;
-  
+app.get('/api/servicios', (req, res) => {
+  const query = 'SELECT * FROM servicios';
+  connection.query(query, (error, results) => {
+    if (error) {
+      console.error('Error fetching servicios:', error);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(results);
+  });
+});
+
+app.post('/api/mascotas', (req, res) => {
+  const { nombre, raza, edad, imagen, notas } = req.body;
   connection.query(
-    'UPDATE productos SET nombre = ?, precio = ?, imagen = ?, cantidad = ? WHERE id = ?',
-    [nombre, precio, imagen, cantidad, id],
+    'INSERT INTO mascotas (nombre, raza, edad, imagen, notas) VALUES (?, ?, ?, ?, ?)',
+    [nombre, raza, edad, imagen, notas],
     (error, result) => {
       if (error) {
-        console.error('Error updating product:', error);
+        console.error('Error adding mascota:', error);
         return res.status(500).json({ error: 'Database error' });
       }
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ error: 'Product not found' });
-      }
-      res.json({ id, nombre, precio, imagen, cantidad });
+      res.status(201).json({ id: result.insertId, nombre, raza, edad, imagen, notas });
     }
   );
 });
 
-app.post('/api/productos', (req, res) => {
-  const { nombre, precio, imagen, cantidad } = req.body;
-  
+app.post('/api/servicios', (req, res) => {
+  const { nombre, duracion, precio, descripcion, imagen } = req.body;
   connection.query(
-    'INSERT INTO productos (nombre, precio, imagen, cantidad) VALUES (?, ?, ?, ?)',
-    [nombre, precio, imagen, cantidad],
+    'INSERT INTO servicios (nombre, duracion, precio, descripcion, imagen) VALUES (?, ?, ?, ?, ?)',
+    [nombre, duracion, precio, descripcion, imagen],
     (error, result) => {
       if (error) {
-        console.error('Error adding product:', error);
+        console.error('Error adding servicio:', error);
         return res.status(500).json({ error: 'Database error' });
       }
-      res.status(201).json({ id: result.insertId, nombre, precio, imagen, cantidad });
-    }
-  );
-});
-
-app.delete('/api/productos/:id', (req, res) => {
-  const id = req.params.id;
-  
-  connection.query(
-    'DELETE FROM productos WHERE id = ?',
-    [id],
-    (error, result) => {
-      if (error) {
-        console.error('Error deleting product:', error);
-        return res.status(500).json({ error: 'Database error' });
-      }
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ error: 'Product not found' });
-      }
-      res.status(204).send();
+      res.status(201).json({ id: result.insertId, nombre, duracion, precio, descripcion, imagen });
     }
   );
 });

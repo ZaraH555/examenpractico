@@ -1,1 +1,24 @@
+:root {
+    --primary-color: #4CAF50;
+    --secondary-color: #2196F3;
+    --tertiary-color: #FF9800;
+    --background-color: #f5f7fa;
+    --text-color: #333;
+    --card-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    --border-radius: 8px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
 /* You can add global styles to this file, and also import other style files */

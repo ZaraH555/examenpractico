@@ -1,1 +1,130 @@
-<router-outlet></router-outlet>
+<div class="container">
+    <div *ngIf="error" class="error-message">
+        {{error}}
+        <button class="btn btn-outline" (click)="error = ''">✕</button>
+    </div>
+    <!-- Catálogo de Servicios -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Servicios de Paseo</h3>
+        </div>
+        
+            <div class="mascota-selector">
+                <select class="form-control" #mascotaSelect="ngModel" [(ngModel)]="selectedMascotaId" name="mascota" required>
+                    <option *ngFor="let mascota of mascotas" [value]="mascota.id">{{mascota.nombre}}</option>
+                </select>
+                </div>
+            <div class="servicio-card" *ngFor="let servicio of servicios">
+                <div class="servicio-info">
+                    <h4>{{servicio.nombre}}</h4>
+                    <p>{{servicio.duracion}} minutos - ${{servicio.precio}}</p>
+                    <p *ngIf="servicio.descripcion">{{servicio.descripcion}}</p>
+                    <button class="btn btn-primary" 
+                            (click)="agregarAlCarrito(servicio)"
+                            [disabled]="!selectedMascotaId">
+                                Agregar al Carrito
+                    </button>
+                </div>
+                </div>
+            
+        </div>
+    </div>
+    
+    <!-- Gestión de Mascotas -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Mis Mascotas</h3>
+        <div>
+            <button class="btn btn-primary" (click)="mostrarModalMascota()">Agregar Mascota</button>
+            <button class="btn btn-outline" (click)="mostrarCarrito()">Ver Carrito</button>
+        </div>
+    </div>
+        <div class="mascota-cards">
+            <div class="mascota-card" *ngFor="let mascota of mascotas">
+                <div class="mascota-img" [style.backgroundImage]="'url(' + mascota.imagen + ')'"></div>
+                <div class="mascota-info">
+                    <h4>{{mascota.nombre}}</h4>
+                    <p>{{mascota.raza}}, {{mascota.edad}} años</p>
+                    <button class="btn btn-outline" (click)="editarMascota(mascota)">Editar</button>
+                    <button class="btn btn-outline" (click)="eliminarMascota(mascota.id)">Eliminar</button>
+                    <button class="btn btn-primary" (click)="mostrarModalPaseo(mascota)">Agendar Paseo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mascota Modal -->
+    <app-mascota-modal 
+        [visible]="mascotaModalVisible"
+        [mascota]="mascotaSeleccionada"
+        (guardarMascota)="guardarMascota($event)"
+        (cerrarModal)="mascotaModalVisible = false">
+    </app-mascota-modal>
+
+    <!-- Carrito Modal -->
+    <div class="modal" [style.display]="carritoVisible ? 'flex' : 'none'">
+        <div class="modal-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Carrito de Paseos</h3>
+                    <button class="btn btn-outline" (click)="cerrarCarrito()">✕</button>
+                </div>
+                <div class="paseo-items">
+                    <div class="paseo-item" *ngFor="let item of carrito; let i = index">
+                        <div class="paseo-info">
+                            <h4>{{item.servicio.nombre}}</h4>
+                            <p>{{item.servicio.duracion}} minutos - ${{item.servicio.precio}}</p>
+                            <p *ngIf="item.mascota">Para: {{item.mascota.nombre}}</p>
+                        </div>
+                        <button class="btn btn-outline" (click)="eliminarDelCarrito(i)">Eliminar</button>
+                    </div>
+                </div>
+                <div class="cart-total" *ngIf="carrito.length > 0">
+                    <h4>Total: ${{calcularTotal() | number:'1.2-2'}}</h4>
+                    <button class="btn btn-primary" (click)="procesarPago()">Pagar Ahora</button>
+                </div>
+                <p *ngIf="carrito.length === 0" class="empty-cart">El carrito está vacío</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paseo Modal -->
+    <div class="modal" [style.display]="paseoModalVisible ? 'flex' : 'none'">
+        <div class="modal-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Agendar Paseo</h3>
+                    <button class="btn btn-outline" (click)="cerrarModalPaseo()">✕</button>
+                </div>
+                <form (ngSubmit)="guardarPaseo()" #paseoForm="ngForm" class="paseo-form">
+                    <div class="form-group">
+                        <label for="fecha">Fecha</label>
+                        <input type="date" id="fecha" name="fecha" class="form-control" 
+                               [class.is-invalid]="fechaInput.invalid && fechaInput.touched"
+                               [(ngModel)]="nuevoPaseo.fecha_paseo" #fechaInput="ngModel" required>
+                        <div class="invalid-feedback" *ngIf="fechaInput.invalid && fechaInput.touched">
+                            La fecha es requerida
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="hora">Hora</label>
+                        <input type="time" id="hora" name="hora" class="form-control" 
+                               [(ngModel)]="nuevoPaseo.hora_inicio" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="servicio">Servicio</label>
+                        <select id="servicio" name="servicio" class="form-control" 
+                                [(ngModel)]="nuevoPaseo.servicio_id" required>
+                            <option *ngFor="let servicio of servicios" [value]="servicio.id">
+                                {{servicio.nombre}} - {{servicio.duracion}} min. - ${{servicio.precio}}
+                            </option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary" [disabled]="!paseoForm.form.valid">
+                        Agendar Paseo
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
