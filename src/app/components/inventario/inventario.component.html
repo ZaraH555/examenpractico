@@ -34,7 +34,8 @@
           <td>{{producto.imagen}}</td>
           <td>
             <button (click)="editarProducto(producto)">Editar</button>
-            <button (click)="eliminarProducto(producto.id)">Eliminar</button>
+            <button (click)="eliminarProducto(producto?.id)" 
+                    [disabled]="!producto?.id">Eliminar</button>
           </td>
         </ng-container>
         

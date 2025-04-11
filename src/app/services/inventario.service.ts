@@ -37,10 +37,10 @@ export class InventarioService {
   }
 
   agregarProducto(producto: Producto): void {
-    const productos = [...this.productos];
-    producto.id = Math.max(...productos.map(p => p.id), 0) + 1;
+    const productos = [...this.productosSubject.value];
+    producto.id = this.generarNuevoId(productos);
     productos.push(producto);
-    this.productoService.actualizarProductos(productos);
+    this.productosSubject.next(productos);
   }
 
   descargarXML(): void {
@@ -90,5 +90,11 @@ export class InventarioService {
         default: return c;
       }
     });
+  }
+
+  private generarNuevoId(productos: Producto[]): number {
+    const maxId = productos.reduce((max, p) => 
+      (p.id !== undefined && p.id > max) ? p.id : max, 0);
+    return maxId + 1;
   }
 }

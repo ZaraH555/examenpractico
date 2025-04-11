@@ -1,9 +1,7 @@
-export class Producto{
-    constructor(
-        public id: number,
-        public nombre: string,
-        public precio: number,
-        public imagen: string,
-        public cantidad: number = 0
-    ){}
+export interface Producto {
+  id: number;  // Remove the optional '?' operator
+  nombre: string;
+  precio: number;
+  cantidad: number;
+  imagen: string;
 }

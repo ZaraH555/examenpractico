@@ -1,13 +1,15 @@
 import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { BehaviorSubject, Observable, throwError } from 'rxjs';
 import { Producto } from '../models/producto';
 import { isPlatformBrowser } from '@angular/common';
+import { catchError, retry } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ProductoService {
+  private apiUrl = 'http://localhost:3000/api/productos';
   private xmlUrl = 'assets/productos.xml';
   private productosSubject = new BehaviorSubject<Producto[]>([]);
   productos$ = this.productosSubject.asObservable();
@@ -84,7 +86,40 @@ export class ProductoService {
   }
 
   obtenerProductos(): Observable<Producto[]> {
-    return this.productos$;
+    return this.http.get<Producto[]>(this.apiUrl).pipe(
+      retry(1),
+      catchError((error: HttpErrorResponse) => {
+        console.error('Error details:', error);
+        return throwError(() => new Error('Failed to load products. Please try again later.'));
+      })
+    );
+  }
+
+  private handleError(error: HttpErrorResponse) {
+    let errorMessage = 'An error occurred';
+    
+    if (error.status === 0) {
+      // Client-side or network error
+      errorMessage = 'Network error occurred. Please check your connection.';
+    } else {
+      // Backend error
+      errorMessage = `Backend returned code ${error.status}, body was: ${error.error}`;
+    }
+    
+    console.error('Error details:', errorMessage);
+    return throwError(() => new Error(errorMessage));
+  }
+
+  agregarProducto(producto: Producto): Observable<Producto> {
+    return this.http.post<Producto>(this.apiUrl, producto);
+  }
+
+  actualizarProducto(id: number, producto: Producto): Observable<Producto> {
+    return this.http.put<Producto>(`${this.apiUrl}/${id}`, producto);
+  }
+
+  eliminarProducto(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
   actualizarCantidad(id: number, nuevaCantidad: number): void {

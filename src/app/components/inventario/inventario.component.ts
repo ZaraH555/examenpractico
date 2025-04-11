@@ -76,9 +76,21 @@ export class InventarioComponent implements OnInit, OnDestroy {
     this.productoSeleccionado = null;
   }
 
-  eliminarProducto(id: number): void {
-    if (confirm('¿Estás seguro de eliminar este producto?')) {
+  eliminarProducto(id: number | undefined): void {
+    if (id !== undefined) {
       this.inventarioService.eliminarProducto(id);
+      this.agregarProducto();
+    }
+  }
+
+  modificarProducto(): void {
+    if (this.productoSeleccionado && this.productoSeleccionado.id !== undefined) {
+      this.inventarioService.modificarProducto(
+        this.productoSeleccionado.id,
+        this.productoSeleccionado
+      );
+      this.agregarProducto();
+      this.productoSeleccionado = null;
     }
   }
 
